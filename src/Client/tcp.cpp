@@ -1,5 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 
+#include "listener.h"
+
 //#include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -12,7 +14,7 @@
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
 
-#define DEFAULT_BUFLEN 512
+#define DEFAULT_BUFLEN 1024
 #define DEFAULT_SENDPORT "27015"
 #define DEFAULT_RECVPORT "27016"
 
@@ -92,7 +94,7 @@ void tcp_send(char *sendbuf)
 		return;
 	}
 
-	printf("\n\tbytes sent: %ld\n", iResult);
+	//printf("\n\tbytes sent: %ld\n", iResult);
 
 
 
@@ -110,9 +112,11 @@ void tcp_send(char *sendbuf)
 
 		iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
 		if ( iResult > 0 )
-			printf("\tbytes received: %d\n", iResult);
+			//printf("\tbytes received: %d\n", iResult);
+			;
 		else if ( iResult == 0 )
-			printf("\n\tconnection closed\n");
+			//printf("\n\t\t\t//connection closed\n");
+			;
 		else
 			printf("\n\trecv failed with error: %d\n", WSAGetLastError());
 
@@ -207,14 +211,20 @@ void tcp_recv(/*char recvbuf[DEFAULT_BUFLEN]*/)
 
 		iResult = recv(ClientSocket, recvbuf, recvbuflen, 0);
 		if (iResult > 0) {
-			printf("\n\tbytes received: %d\n", iResult);
+			//printf("\n\tbytes received: %d\n", iResult);
 
 			string raw_str_handle;
 			int i;
 			for(i = 0; i < iResult; i++)												// char[] to string
 				if(recvbuf[i] != NULL)
 					raw_str_handle += recvbuf[i];
-			cout << "\n\trecv: " << raw_str_handle << endl;
+			//cout << "\n\trecv: " << raw_str_handle << endl;
+			size_t delimiter = raw_str_handle.find_first_of(":");
+			string signal_token = raw_str_handle.substr(0, delimiter);
+			if(signal_token.compare("STD") == 0)
+				prepare_for_show(raw_str_handle);
+			else
+				cout << raw_str_handle << endl;
 
 			// Echo the buffer back to the sender				-> is this TCP?
 			iSendResult = send( ClientSocket, recvbuf, iResult, 0 );
@@ -224,10 +234,11 @@ void tcp_recv(/*char recvbuf[DEFAULT_BUFLEN]*/)
 				WSACleanup();
 				return;
 			}
-			printf("\tbytes sent: %d\n", iSendResult);
+			//printf("\tbytes sent: %d\n", iSendResult);
 		}
 		else if (iResult == 0)
-			printf("\n\tconnection closing...\n");
+			//printf("\n\t\t\t//connection closing...\n");
+			;
 		else  {
 			printf("\n\trecv failed with error: %d\n", WSAGetLastError());
 			closesocket(ClientSocket);

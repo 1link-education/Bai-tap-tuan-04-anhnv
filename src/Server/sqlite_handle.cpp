@@ -157,44 +157,6 @@ void sql_select(string tbl_name)
 	sqlite3 *db;
 	char *zErrMsg = 0;
 	int  rc;
-	const char* data = "Callback function called";
-	char *sql;
-	string sqlString;
-	sqlite3_stmt * m_statement;
-
-	string str = "SELECT * from ";
-	str += tbl_name;
-	sql = &str[0];
-
-	sqlite3_open("DIEM_THI_2016.db", &db);
-
-	sqlite3_prepare_v2(db, str.c_str(), -1, &m_statement, 0);
-
-	rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
-	sqlite3_step(m_statement);
-
-	int row;
-	int col;
-	string row_content;
-	/*for(row = 1; row <= row_count; row++) {*/
-	sqlite3_prepare_v2(db, str.c_str(), -1, &m_statement, 0);
-	sqlite3_step(m_statement);
-	for(col = 1; col <= 8; col++)
-	{
-		row_content = string(reinterpret_cast<const char*>(sqlite3_column_text(m_statement,col-1)));
-		cout << "\n\t" << row_content;
-	}
-	cout << endl;
-	//}
-
-	sqlite3_close(db);
-}
-
-void sql_update(string tbl_name, string id_to_update, string set_name, string set_math, string set_phys, string set_chem)
-{
-	sqlite3 *db;
-	char *zErrMsg = 0;
-	int  rc;
 	char *sql;
 	const char* data = "Callback function called";
 	string sqlString;
@@ -207,54 +169,7 @@ void sql_update(string tbl_name, string id_to_update, string set_name, string se
 		fprintf(stdout, "\n\topened database successfully!\n\n");
 	}
 
-	sqlString = "UPDATE ";
-	sqlString += tbl_name;
-	sqlString += " set ";
-	sqlString += set_name;
-	sqlString += set_math;
-	sqlString += set_phys;
-	sqlString += set_chem;
-	sqlString += "WHERE ID = '";
-	sqlString += id_to_update;
-	sqlString += "'; SELECT * from ";
-	sqlString += tbl_name;
-	sql = &sqlString[0];
-
-	//cout << "\nSQL: " << sql << endl;
-
-	rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
-	if( rc != SQLITE_OK ){
-		fprintf(stderr, "\n\tSQL error: %s\n", zErrMsg);
-		sqlite3_free(zErrMsg);
-	}else{
-		fprintf(stdout, "\n\toperation done successfully!\n");
-	}
-
-	sqlite3_close(db);
-}
-
-void sql_delete(string tbl_name, string id_to_delete)
-{
-	sqlite3 *db;
-	char *zErrMsg = 0;
-	int  rc;
-	char *sql;
-	const char* data = "Callback function called";
-	string sqlString;
-
-	rc = sqlite3_open("DIEM_THI_2016.db", &db);
-	if( rc ){
-		fprintf(stderr, "\n\tdatabase could not be opened: %s\n", sqlite3_errmsg(db));
-		exit(0);
-	}else{
-		fprintf(stdout, "\n\topened database successfully\n\n");
-	}
-
-	sqlString = "DELETE from ";
-	sqlString += tbl_name;
-	sqlString += " where ID = '";
-	sqlString += id_to_delete;
-	sqlString += "'; SELECT * from ";
+	sqlString = "SELECT * from ";
 	sqlString += tbl_name;
 	sql = &sqlString[0];
 
@@ -263,8 +178,53 @@ void sql_delete(string tbl_name, string id_to_delete)
 		fprintf(stderr, "SQL error: %s\n", zErrMsg);
 		sqlite3_free(zErrMsg);
 	}else{
-		fprintf(stdout, "\n\toperation done successfully\n");
+		fprintf(stdout, "\n\toperation done successfully!\n");
 	}
+
+	char **results = NULL;
+	int rows, columns;
+
+	sqlite3_get_table(db, sql, &results, &rows, &columns, &zErrMsg);
+	if (rc)
+	{
+		cerr << "\n\terror executing SQLite3 query: " << sqlite3_errmsg(db) << endl << endl;
+		sqlite3_free(zErrMsg);
+	}
+	else
+	{
+		for (int rowCtr = 1; rowCtr <= rows; ++rowCtr)
+		{
+			int cell_position = rowCtr * columns;
+			stringstream stream;
+			string table_content_str = "STD:";
+			char * table_content_char;
+
+			stream << rowCtr;
+			table_content_str += stream.str();
+			stream.str(string());
+			stream.clear();
+
+			table_content_str += ":";
+			table_content_str += results[cell_position];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 1];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 2];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 3];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 4];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 5];
+			table_content_str += ":";	
+			table_content_str += results[cell_position + 6];
+
+			table_content_char = &table_content_str[0];
+			tcp_send(table_content_char);
+			cout << "\nsent: " << table_content_char << endl;
+		}
+	}
+	sqlite3_free_table(results);
 
 	sqlite3_close(db);
 }
@@ -288,9 +248,11 @@ void sql_search_id(string tbl_name, string keyword)
 
 	sqlString = "SELECT * from ";
 	sqlString += tbl_name;
-	sqlString += " WHERE ID GLOB '";
+	//sqlString += " WHERE ID GLOB '";
+	sqlString += " WHERE ID = '";
 	sqlString += keyword;
-	sqlString += "*';";
+	//sqlString += "*';";
+	sqlString += "';";
 	sql = &sqlString[0];
 
 	rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
@@ -299,6 +261,132 @@ void sql_search_id(string tbl_name, string keyword)
 		sqlite3_free(zErrMsg);
 	}else{
 		fprintf(stdout, "\n\toperation done successfully!\n");
+	}
+
+	char **results = NULL;
+	int rows, columns;
+
+	sqlite3_get_table(db, sql, &results, &rows, &columns, &zErrMsg);
+	if (rc)
+	{
+		cerr << "\n\terror executing SQLite3 query: " << sqlite3_errmsg(db) << endl << endl;
+		sqlite3_free(zErrMsg);
+	}
+	else
+	{
+		for (int rowCtr = 1; rowCtr <= rows; ++rowCtr)
+		{
+			int cell_position = rowCtr * columns;
+			stringstream stream;
+			string table_content_str = "STD:";
+			char * table_content_char;
+
+			stream << rowCtr;
+			table_content_str += stream.str();
+			stream.str(string());
+			stream.clear();
+
+			table_content_str += ":";
+			table_content_str += results[cell_position];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 1];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 2];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 3];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 4];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 5];
+			table_content_str += ":";	
+			table_content_str += results[cell_position + 6];
+
+			table_content_char = &table_content_str[0];
+			tcp_send(table_content_char);
+			cout << "\nsent: " << table_content_char << endl;
+		}
+	}
+
+	sqlite3_free_table(results);
+	sqlite3_close(db);
+}
+
+void sql_update(string tbl_name, string id_to_update, string set_name, string set_math, string set_phys, string set_chem)
+{
+	sqlite3 *db;
+	char *zErrMsg = 0;
+	int  rc;
+	char *sql;
+	const char* data = "Callback function called";
+	string sqlString;
+	
+	rc = sqlite3_open("DIEM_THI_2016.db", &db);
+	if( rc ){
+		fprintf(stderr, "\n\tdatabase could not be opened: %s\n", sqlite3_errmsg(db));
+		exit(0);
+	}else{
+		fprintf(stdout, "\n\topened database successfully!\n\n");
+	}
+
+	sqlString = "UPDATE ";
+	sqlString += tbl_name;
+	sqlString += " set ";
+	sqlString += set_name;
+	sqlString += set_math;
+	sqlString += set_phys;
+	sqlString += set_chem;
+	sqlString += "WHERE ID = '";
+	sqlString += id_to_update;
+	sqlString += "'; SELECT * from ";
+	sqlString += tbl_name;
+	sql = &sqlString[0];
+
+	rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
+	if( rc != SQLITE_OK ){
+		fprintf(stderr, "\n\tSQL error: %s\n", zErrMsg);
+		sqlite3_free(zErrMsg);
+	}else{
+		fprintf(stdout, "\n\toperation done successfully!\n");
+	}
+
+	sql_search_id(tbl_name, id_to_update);
+
+	sqlite3_close(db);
+}
+
+void sql_delete(string tbl_name, string id_to_delete)
+{
+	sqlite3 *db;
+	char *zErrMsg = 0;
+	int  rc;
+	char *sql;
+	const char* data = "Callback function called";
+	string sqlString;
+	
+	sql_search_id(tbl_name, id_to_delete);
+
+	rc = sqlite3_open("DIEM_THI_2016.db", &db);
+	if( rc ){
+		fprintf(stderr, "\n\tdatabase could not be opened: %s\n", sqlite3_errmsg(db));
+		exit(0);
+	}else{
+		fprintf(stdout, "\n\topened database successfully\n\n");
+	}
+
+	sqlString = "DELETE from ";
+	sqlString += tbl_name;
+	sqlString += " where ID = '";
+	sqlString += id_to_delete;
+	sqlString += "'; SELECT * from ";
+	sqlString += tbl_name;
+	sql = &sqlString[0];
+
+	rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
+	if( rc != SQLITE_OK ){
+		fprintf(stderr, "SQL error: %s\n", zErrMsg);
+		sqlite3_free(zErrMsg);
+	}else{
+		fprintf(stdout, "\n\toperation done successfully\n");
 	}
 
 	sqlite3_close(db);
@@ -337,6 +425,51 @@ void sql_search_id_sort(string tbl_name, string keyword, string sort)
 		fprintf(stdout, "\n\toperation done successfully!\n");
 	}
 
+	char **results = NULL;
+	int rows, columns;
+
+	sqlite3_get_table(db, sql, &results, &rows, &columns, &zErrMsg);
+	if (rc)
+	{
+		cerr << "\n\terror executing SQLite3 query: " << sqlite3_errmsg(db) << endl << endl;
+		sqlite3_free(zErrMsg);
+	}
+	else
+	{
+		for (int rowCtr = 1; rowCtr <= rows; ++rowCtr)
+		{
+			int cell_position = rowCtr * columns;
+			stringstream stream;
+			string table_content_str = "STD:";
+			char * table_content_char;
+
+			stream << rowCtr;
+			table_content_str += stream.str();
+			stream.str(string());
+			stream.clear();
+
+			table_content_str += ":";
+			table_content_str += results[cell_position];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 1];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 2];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 3];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 4];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 5];
+			table_content_str += ":";	
+			table_content_str += results[cell_position + 6];
+
+			table_content_char = &table_content_str[0];
+			tcp_send(table_content_char);
+			cout << "\nsent: " << table_content_char << endl;
+		}
+	}
+
+	sqlite3_free_table(results);
 	sqlite3_close(db);
 }
 
@@ -373,6 +506,51 @@ void sql_search_name_sort(string tbl_name, string keyword, string sort)
 		fprintf(stdout, "\n\toperation done successfully!\n");
 	}
 
+	char **results = NULL;
+	int rows, columns;
+
+	sqlite3_get_table(db, sql, &results, &rows, &columns, &zErrMsg);
+	if (rc)
+	{
+		cerr << "\n\terror executing SQLite3 query: " << sqlite3_errmsg(db) << endl << endl;
+		sqlite3_free(zErrMsg);
+	}
+	else
+	{
+		for (int rowCtr = 1; rowCtr <= rows; ++rowCtr)
+		{
+			int cell_position = rowCtr * columns;
+			stringstream stream;
+			string table_content_str = "STD:";
+			char * table_content_char;
+
+			stream << rowCtr;
+			table_content_str += stream.str();
+			stream.str(string());
+			stream.clear();
+
+			table_content_str += ":";
+			table_content_str += results[cell_position];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 1];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 2];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 3];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 4];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 5];
+			table_content_str += ":";	
+			table_content_str += results[cell_position + 6];
+
+			table_content_char = &table_content_str[0];
+			tcp_send(table_content_char);
+			cout << "\nsent: " << table_content_char << endl;
+		}
+	}
+
+	sqlite3_free_table(results);
 	sqlite3_close(db);
 }
 
@@ -409,6 +587,51 @@ void sql_search_math_sort(string tbl_name, string keyword, string sort)
 		fprintf(stdout, "\n\toperation done successfully!\n");
 	}
 
+	char **results = NULL;
+	int rows, columns;
+
+	sqlite3_get_table(db, sql, &results, &rows, &columns, &zErrMsg);
+	if (rc)
+	{
+		cerr << "\n\terror executing SQLite3 query: " << sqlite3_errmsg(db) << endl << endl;
+		sqlite3_free(zErrMsg);
+	}
+	else
+	{
+		for (int rowCtr = 1; rowCtr <= rows; ++rowCtr)
+		{
+			int cell_position = rowCtr * columns;
+			stringstream stream;
+			string table_content_str = "STD:";
+			char * table_content_char;
+
+			stream << rowCtr;
+			table_content_str += stream.str();
+			stream.str(string());
+			stream.clear();
+
+			table_content_str += ":";
+			table_content_str += results[cell_position];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 1];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 2];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 3];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 4];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 5];
+			table_content_str += ":";	
+			table_content_str += results[cell_position + 6];
+
+			table_content_char = &table_content_str[0];
+			tcp_send(table_content_char);
+			cout << "\nsent: " << table_content_char << endl;
+		}
+	}
+
+	sqlite3_free_table(results);
 	sqlite3_close(db);
 }
 
@@ -445,6 +668,51 @@ void sql_search_phys_sort(string tbl_name, string keyword, string sort)
 		fprintf(stdout, "\n\toperation done successfully!\n");
 	}
 
+	char **results = NULL;
+	int rows, columns;
+
+	sqlite3_get_table(db, sql, &results, &rows, &columns, &zErrMsg);
+	if (rc)
+	{
+		cerr << "\n\terror executing SQLite3 query: " << sqlite3_errmsg(db) << endl << endl;
+		sqlite3_free(zErrMsg);
+	}
+	else
+	{
+		for (int rowCtr = 1; rowCtr <= rows; ++rowCtr)
+		{
+			int cell_position = rowCtr * columns;
+			stringstream stream;
+			string table_content_str = "STD:";
+			char * table_content_char;
+
+			stream << rowCtr;
+			table_content_str += stream.str();
+			stream.str(string());
+			stream.clear();
+
+			table_content_str += ":";
+			table_content_str += results[cell_position];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 1];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 2];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 3];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 4];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 5];
+			table_content_str += ":";	
+			table_content_str += results[cell_position + 6];
+
+			table_content_char = &table_content_str[0];
+			tcp_send(table_content_char);
+			cout << "\nsent: " << table_content_char << endl;
+		}
+	}
+
+	sqlite3_free_table(results);
 	sqlite3_close(db);
 }
 
@@ -481,6 +749,51 @@ void sql_search_chem_sort(string tbl_name, string keyword, string sort)
 		fprintf(stdout, "\n\toperation done successfully!\n");
 	}
 
+	char **results = NULL;
+	int rows, columns;
+
+	sqlite3_get_table(db, sql, &results, &rows, &columns, &zErrMsg);
+	if (rc)
+	{
+		cerr << "\n\terror executing SQLite3 query: " << sqlite3_errmsg(db) << endl << endl;
+		sqlite3_free(zErrMsg);
+	}
+	else
+	{
+		for (int rowCtr = 1; rowCtr <= rows; ++rowCtr)
+		{
+			int cell_position = rowCtr * columns;
+			stringstream stream;
+			string table_content_str = "STD:";
+			char * table_content_char;
+
+			stream << rowCtr;
+			table_content_str += stream.str();
+			stream.str(string());
+			stream.clear();
+
+			table_content_str += ":";
+			table_content_str += results[cell_position];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 1];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 2];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 3];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 4];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 5];
+			table_content_str += ":";	
+			table_content_str += results[cell_position + 6];
+
+			table_content_char = &table_content_str[0];
+			tcp_send(table_content_char);
+			cout << "\nsent: " << table_content_char << endl;
+		}
+	}
+
+	sqlite3_free_table(results);
 	sqlite3_close(db);
 }
 
@@ -517,6 +830,51 @@ void sql_search_total_sort(string tbl_name, string keyword, string sort)
 		fprintf(stdout, "\n\toperation done successfully!\n");
 	}
 
+	char **results = NULL;
+	int rows, columns;
+
+	sqlite3_get_table(db, sql, &results, &rows, &columns, &zErrMsg);
+	if (rc)
+	{
+		cerr << "\n\terror executing SQLite3 query: " << sqlite3_errmsg(db) << endl << endl;
+		sqlite3_free(zErrMsg);
+	}
+	else
+	{
+		for (int rowCtr = 1; rowCtr <= rows; ++rowCtr)
+		{
+			int cell_position = rowCtr * columns;
+			stringstream stream;
+			string table_content_str = "STD:";
+			char * table_content_char;
+
+			stream << rowCtr;
+			table_content_str += stream.str();
+			stream.str(string());
+			stream.clear();
+
+			table_content_str += ":";
+			table_content_str += results[cell_position];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 1];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 2];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 3];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 4];
+			table_content_str += ":";
+			table_content_str += results[cell_position + 5];
+			table_content_str += ":";	
+			table_content_str += results[cell_position + 6];
+
+			table_content_char = &table_content_str[0];
+			tcp_send(table_content_char);
+			cout << "\nsent: " << table_content_char << endl;
+		}
+	}
+
+	sqlite3_free_table(results);
 	sqlite3_close(db);
 }
 

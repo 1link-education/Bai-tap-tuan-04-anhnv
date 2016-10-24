@@ -1,28 +1,28 @@
 d13at1
 hai hoang thi thanh
 463 doi can ba dinh
-female
+f
 6
 7
 7
 d13at2
 anh nguyen viet
 172 cho me
-male
+m
 7
 8
 8
 d13at3
 hien hoang thi
 14 duong quang ham
-female
+f
 6
 6
 7
 d13at4
 toan tong van
 463 doi can ba dinh
-male
+m
 5
 5
 5

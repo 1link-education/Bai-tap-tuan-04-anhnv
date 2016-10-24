@@ -100,7 +100,7 @@ void addFK(string schoolName)
 		char * std_to_send = &std_to_str[0];
 		tcp_send(std_to_send);
 	}
-	cout << "\n\nstudent record has been created successfully\n";
+	cout << "\nstudent record has been created successfully\n";
 }
 
 // them ban ghi tu file studentIN.txt
@@ -114,8 +114,8 @@ void addFF(string schoolName)
 	add_signal = &add_signal_str[0];
 	tcp_send(add_signal);
 
-	cout << "\n\tstudent records have successfully imported";
-	cout << "\n\tfrom studentIN.txt to table [" << schoolName << "]\n";
+	cout << "\nstudent records have successfully imported";
+	cout << "\nfrom studentIN.txt to table [" << schoolName << "]\n";
 }
 
 // showAdd()
@@ -123,7 +123,7 @@ void add(string schoolName)
 {
 	char addOpt;
 
-	cout << "\tpress 'k' to add records from keyboard or 'f' to add from file: ";
+	cout << "press 'k' to add records from keyboard or 'f' to add from file: ";
 	cin >> addOpt;
 	cin.ignore();
 
@@ -138,7 +138,7 @@ void add(string schoolName)
 			cout << "\n\t!invalid parameter. please choose [k/f] to add record from keyboard/file..\n";
 	}
 
-	cout << "\tpress any key to continue..\n";
+	cout << "press any key to continue..\n";
 	cin.get();
 }
  // hien thi toan bo cac ban ghi cua truong dang thao tac
@@ -154,6 +154,7 @@ void show(string schoolName)
 	char * show_signal = &show_signal_str[0];
 	tcp_send(show_signal);
 
+	cout << "press any key to continue..\n";
 	cin.get();
 }
 
@@ -313,6 +314,8 @@ void update_show(string schoolName)
 	fflush(stdin);
 	getline(cin, update_option);
 	updating(schoolName, s, update_option);
+
+	cout << "press any key to continue..\n";
 	cin.get();
 }
 
@@ -329,6 +332,7 @@ void del(string schoolName)
 	cin >> confirm;
 	if(confirm == 'Y' || confirm == 'y')
 	{
+		cout << "\n\n\tthis record will be deleted from database: \n";
 		string del_signal_str = "del:";
 		del_signal_str += schoolName;
 		del_signal_str += ":";
@@ -341,6 +345,8 @@ void del(string schoolName)
 	}
 	else
 		return;
+
+	cout << "press any key to continue..\n";
 	cin.get();
 }
 
@@ -451,6 +457,8 @@ void search(string schoolName)
 			default:
 				cout << "\n\t!invalid parameter. please choose [i/n/m/p/c/t] to search.. ";
 		}
+		cout << "press any key to continue..\n";
+		cin.get();
 }
 
 void stat(string schoolName)
@@ -461,5 +469,7 @@ void stat(string schoolName)
 	stat_signal_str += schoolName;
 	char * stat_signal = &stat_signal_str[0];
 	tcp_send(stat_signal);
+
+	cout << "press any key to continue..\n";
 	cin.get();
 }
